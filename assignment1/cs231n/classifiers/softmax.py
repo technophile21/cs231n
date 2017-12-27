@@ -108,3 +108,37 @@ def softmax_loss_vectorized(W, X, y, reg):
 
   return loss, dW
 
+def softmax_loss_for_scores(scores, y):
+  """
+  Compute softmax loss, gradient for given score matrix (no regularization)
+
+  score => N x C where N is number of smaples and C is number of classes
+
+  y => N, vector of correct labels
+
+  """
+  # Initialize the loss and gradient to zero.
+  loss = 0.0
+  num_train = scores.shape[0]
+
+  scores = scores - np.reshape(np.max(scores, axis=1), (-1, 1))  #numerical stability
+  #print("Stabilized  scores", scores)
+  exp_scores = np.exp(scores)
+  #print("Exp scores", exp_scores)
+  prob_scores = exp_scores / np.reshape(np.sum(exp_scores, axis=1), (-1, 1))
+  #print("Prob scores", prob_scores)
+  class_scores = prob_scores[np.arange(prob_scores.shape[0]), y]
+  #print("Class scores", class_scores)
+  cross_entropy_loss = -np.log(class_scores)
+
+  loss = np.sum(cross_entropy_loss)
+  loss /= num_train
+
+  prob_scores[np.arange(prob_scores.shape[0]), y] -= 1
+  dW = prob_scores
+  dW /= num_train
+  #############################################################################
+  #                          END OF YOUR CODE                                 #
+  #############################################################################
+
+  return loss, dW

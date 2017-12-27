@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 #from past.builtins import xrange
 
+from cs231n.classifiers.softmax import softmax_loss_for_scores
+
 class TwoLayerNet(object):
   """
   A two-layer fully-connected neural network. The net has an input dimension of
@@ -76,7 +78,11 @@ class TwoLayerNet(object):
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    pass
+    l1_scores = X.dot(W1) + b1
+    relu_l1_score = l1_scores
+    relu_l1_score[relu_l1_score < 0] = 0
+    l2_scores = relu_l1_score.dot(W2) + b2
+    scores = l2_scores
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -93,7 +99,8 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    pass
+    loss, grad_softmax = softmax_loss_for_scores(scores, y)
+    loss += 0.5 * reg * np.sum(W1 * W1) + 0.5 * reg * np.sum(W2 * W2)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -105,7 +112,16 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    grads['W2'] = relu_l1_score.T.dot(grad_softmax)
+    grads['b2'] = np.sum(grad_softmax, axis=0)
+    grad_relu_l1_score = grad_softmax.dot(W2.T)
+    grad_l1_score = grad_relu_l1_score
+    grad_l1_score[relu_l1_score <= 0] = 0
+    grads['W1'] = X.T.dot(grad_l1_score)
+    grads['b1'] = np.sum(grad_l1_score, axis=0)
+
+    grads['W2'] += reg * W2
+    grads['W1'] += reg * W1
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
