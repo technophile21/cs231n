@@ -188,7 +188,16 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # variance, storing your result in the running_mean and running_var   #
         # variables.                                                          #
         #######################################################################
-        pass
+        x_mean = np.reshape(np.mean(x, axis=0), (1, -1))
+        x_var = np.reshape(np.var(x, axis=0), (1, -1))
+        x_var += eps
+        x_new = (x - x_mean) / np.sqrt(x_var)
+        out = (np.reshape(gamma, (1, -1)) * x_new) + np.reshape(beta, (1, -1))
+
+        running_mean = momentum * running_mean + (1 - momentum) * x_mean
+        running_var = momentum * running_var + (1 - momentum) * x_var
+
+        cache = (x_mean, x_var, x_new)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -199,7 +208,11 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        pass
+        x_mean = running_mean
+        x_var = running_var
+        x_var += eps
+        x_new = (x - x_mean) / np.sqrt(x_var)
+        out = (np.reshape(gamma, (1, -1)) * x_new) + np.reshape(beta, (1, -1))
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
