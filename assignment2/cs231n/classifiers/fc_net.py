@@ -192,11 +192,18 @@ class FullyConnectedNet(object):
         for idx in range(self.num_layers):
             w_name = 'W' + str(idx + 1)
             b_name = 'b' + str(idx + 1)
+            
             out_dim = layer_dims[idx]
 
             self.params[w_name] = np.random.normal(loc=0.0, scale=weight_scale,
                                                     size=(inp_dim, out_dim))
             self.params[b_name] = np.zeros(out_dim)
+
+            if self.use_batchnorm and idx < self.num_layers - 1:
+                gamma_name = 'gamma' + str(idx + 1)
+                beta_name = 'beta' + str(idx + 1)
+                self.params[gamma_name] = np.ones(out_dim)
+                self.params[beta_name] = np.zeros(out_dim)
 
             inp_dim = out_dim
 
@@ -268,13 +275,21 @@ class FullyConnectedNet(object):
 
         affine_out = {}
         relu_out = {}
+        batchnorm_out = {}
         relu_out[0] = (X, ())
         for i in range(self.num_layers - 1):
             idx = i + 1
             w_name = 'W' + str(idx)
             b_name = 'b' + str(idx)
             affine_out[idx] = affine_forward(relu_out[idx-1][0], self.params[w_name], self.params[b_name])
-            relu_out[idx] = relu_forward(affine_out[idx][0])
+            relu_inp = affine_out[idx][0]
+            if self.use_batchnorm:
+                gamma_name = 'gamma' + str(idx)
+                beta_name = 'beta' + str(idx)
+                batchnorm_out[idx] = batchnorm_forward(affine_out[idx][0], self.params[gamma_name],
+                                                    self.params[beta_name], self.bn_params[i])
+                relu_inp = batchnorm_out[idx][0]
+            relu_out[idx] = relu_forward(relu_inp)
         
         #last layer
         idx = self.num_layers
@@ -325,8 +340,14 @@ class FullyConnectedNet(object):
             grads[b_name] = db
 
             if(i > 1):
-                dout = relu_backward(dx, relu_out[idx - 1][1])
-
+                drelu = relu_backward(dx, relu_out[idx - 1][1])
+                dout = drelu
+                if self.use_batchnorm:
+                    gamma_name = 'gamma' + str(idx - 1)
+                    beta_name = 'beta' + str(idx - 1)
+                    dout, dgamma, dbeta = batchnorm_backward(drelu, batchnorm_out[idx - 1][1])
+                    grads[gamma_name] = dgamma
+                    grads[beta_name] = dbeta
 
         ############################################################################
         #                             END OF YOUR CODE                             #
