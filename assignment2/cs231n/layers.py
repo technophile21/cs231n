@@ -197,7 +197,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         running_mean = momentum * running_mean + (1 - momentum) * x_mean
         running_var = momentum * running_var + (1 - momentum) * x_var
 
-        cache = (x_mean, x_var, x_new)
+        cache = (x_var, x_new, gamma)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -248,7 +248,12 @@ def batchnorm_backward(dout, cache):
     # TODO: Implement the backward pass for batch normalization. Store the    #
     # results in the dx, dgamma, and dbeta variables.                         #
     ###########################################################################
-    pass
+    x_var, x_new, gamma = cache
+
+    dx_new = dout * (np.reshape(gamma, (1, -1)))
+    dgamma = np.sum(dout * x_new, axis=0)
+    dbeta = np.sum(dout, axis=0)
+    dx = dx_new * (1 / np.sqrt(x_var))
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
