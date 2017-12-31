@@ -276,12 +276,13 @@ class FullyConnectedNet(object):
         affine_out = {}
         relu_out = {}
         batchnorm_out = {}
-        relu_out[0] = (X, ())
+        drop_out = {}
+        last_layer_out = X
         for i in range(self.num_layers - 1):
             idx = i + 1
             w_name = 'W' + str(idx)
             b_name = 'b' + str(idx)
-            affine_out[idx] = affine_forward(relu_out[idx-1][0], self.params[w_name], self.params[b_name])
+            affine_out[idx] = affine_forward(last_layer_out, self.params[w_name], self.params[b_name])
             relu_inp = affine_out[idx][0]
             if self.use_batchnorm:
                 gamma_name = 'gamma' + str(idx)
@@ -289,13 +290,18 @@ class FullyConnectedNet(object):
                 batchnorm_out[idx] = batchnorm_forward(affine_out[idx][0], self.params[gamma_name],
                                                     self.params[beta_name], self.bn_params[i])
                 relu_inp = batchnorm_out[idx][0]
+            
             relu_out[idx] = relu_forward(relu_inp)
+            last_layer_out = relu_out[idx][0]
+            if self.use_dropout:
+                drop_out[idx] = dropout_forward(relu_out[idx][0], self.dropout_param)
+                last_layer_out = drop_out[idx][0]
         
         #last layer
         idx = self.num_layers
         w_name = 'W' + str(idx)
         b_name = 'b' + str(idx)
-        affine_out[idx] = affine_forward(relu_out[idx - 1][0], self.params[w_name], self.params[b_name])
+        affine_out[idx] = affine_forward(last_layer_out, self.params[w_name], self.params[b_name])
         
         scores = affine_out[self.num_layers][0]
 
@@ -340,7 +346,11 @@ class FullyConnectedNet(object):
             grads[b_name] = db
 
             if(i > 1):
-                drelu = relu_backward(dx, relu_out[idx - 1][1])
+                dout = dx
+                if self.use_dropout:
+                    ddropout = dropout_backward(dx, drop_out[idx - 1][1])
+                    dout = ddropout
+                drelu = relu_backward(dout, relu_out[idx - 1][1])
                 dout = drelu
                 if self.use_batchnorm:
                     gamma_name = 'gamma' + str(idx - 1)
